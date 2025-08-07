@@ -123,14 +123,15 @@ class hdlFileParser:
         :param config_path: Path to the configuration file containing HDL file paths.
         """
         config_lines = open(config_path, 'r').readlines()
-
         dependency_idx = next((i for i, line in enumerate(config_lines) if "dependencies" in line.strip()), None)
 
-        if dependency_idx is not None:
+        if dependency_idx:
             dependencies = config_lines[dependency_idx + 1:]
             for dep in dependencies:
-                if not dep.strip():
-                    dep_path = getenv("PROJECT_ROOT") + "/cores/" + dep.strip().replace("-", "") + dep.strip().replace("-", "") + ".yml" 
+                if dep.strip():
+                    dep_path = "/".join(config_path.split("/")[:-1]) + "/" + dep.strip().replace("- ", "")
+                    print(dep_path)
+                    #exit(1)
                     hdlFileParser.parse_files_from_config(dep_path) 
                 else:
                     break
@@ -140,7 +141,9 @@ class hdlFileParser:
             files = config_lines[files_idx + 1:]
             for file in files:
                 if file.strip():
-                    hdlFileParser.parse_file(config_path + "/../" + file.strip().replace("- ", ""))
+                    file_path ="/".join(config_path.split("/")[:-1]) + "/"
+                    print(file_path + file.strip().replace("- ", ""))
+                    hdlFileParser.parse_file(file_path + file.strip().replace("- ", ""))
 
     @staticmethod
     def parse_deps_from_config(config_path : str) -> None:

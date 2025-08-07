@@ -10,6 +10,7 @@ def main():
     argparser = argparse.ArgumentParser(description="Create a new project template")
     argparser.add_argument("project_name", help="Name of the project")
     argparser.add_argument("-d", "--dependencies", nargs='+', help="List of dependencies")
+    argparser.add_argument("-t", help="File extension for the top-level file", default=".sv")
     args = argparser.parse_args()
     
     if "cores" not in listdir(getcwd()):
@@ -34,14 +35,15 @@ def main():
             for dep in args.dependencies:
                 f.write(f"- ../{dep}/{dep}.yml\n")
         f.write("\n")
-        f.write(f"files:\n- hdl/{project_name}.sv")
+        f.write(f"files:\n- hdl/{project_name}{args.t}\n")
     # Create the project subdirectories
     mkdir('hdl')
     mkdir('sim')
     mkdir('syn')
 
     # make top level files in hdl and sim
-    open(f"{getcwd()}/hdl/{project_name}.sv", 'w')
+    open(f"{getcwd()}/hdl/{project_name}{args.t}", 'w')
+    open(f"{getcwd()}/sim/{project_name}_tb{args.t}", 'w')
 
     if args.dependencies:
         environ["PROJECT_NAME"] = project_name
