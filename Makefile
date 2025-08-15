@@ -1,10 +1,10 @@
 TARGET?=$(PROJECT_NAME)
+BUILD_DIR?=build
+CORENUM?=0
 
 SHELL := /bin/bash
 
-sim:
-	echo "Running simulation of $(TARGET)"
-	cd cores/$(TARGET)/sim && simpl xsim
+include $(shell cocotb-config --makefiles)/Makefile.sim
 
 build:
 	source source_simpl
@@ -23,5 +23,15 @@ open:
 check_syntax:
 	source source_simpl && check_syntax.py $(TARGET)
 
-clean:
-	@rm -rf cores/* 
+test:
+	mkdir -p $(BUILD_DIR)/$(TARGET)
+	@cd $(BUILD_DIR)/$(TARGET) && \
+	VERILOG_SOURCES=$(PROJECT_ROOT)/cores/*/hdl/*.sv \
+	SIM=icarus \
+	TOPLEVEL=$(TARGET) \
+	MODULE=$(TARGET)_test \
+	BUILD_DIR=$(BUILD_DIR)/$(TARGET) \
+	PYTHONPATH=$(PROJECT_ROOT)/tests/cores/$(TARGET) \
+	WAVES=0 \
+	COMPILE_ARGS+=-P$(TOPLEVEL).CORENUM=$(CORENUM) \
+	make -f $(PROJECT_ROOT)/Makefile sim
