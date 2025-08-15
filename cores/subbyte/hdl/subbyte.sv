@@ -4,11 +4,12 @@ module subbyte (
 );
     logic [7:0] sbox [0:255];
 
-    always_comb begin
-        for (int i = 0; i < 16; i++) begin
-            data_out[8*i + 7 :- 8] = sbox[data_in[8*i + 7 :- 8]];
+    genvar i;
+    generate
+        for (i = 0; i < 16; i++) begin : subbyte
+            assign data_out[8*i + 7 : 8*i] = sbox[data_in[8*i + 7 : 8*i]];
         end
-    end
+    endgenerate
 
     always_comb begin
         sbox[8'h00] = 8'h63;
