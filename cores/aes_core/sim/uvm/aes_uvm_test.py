@@ -1,61 +1,37 @@
-from pyuvm import uvm_sequence_item
-import random as pyrandom
+from pyuvm import *
+from cocotb import cocotb
+from cocotb.clock import Clock
+from cocotb.triggers import RisingEdge
 
-from pyuvm import uvm_sequence, uvm_sequencer, uvm_driver, uvm_component, uvm_analysis_port, uvm_component
+from transaction import AesTransaction
+from driver import AesDriver
+from sequencer import AesSequencer
+from sequence import AesSequence
 
+import pyuvm
 
-
-class aesTransaction(uvm_sequence_item):
-    def __init__(self, name, data_in=None, key_in=None):
-        super().__init__(name)
-        self.data_in = data_in if data_in else int("".join([pyrandom.choice("01") for _ in range(128)]))
-        self.key_in = key_in if key_in else int("".join([pyrandom.choice("01") for _ in range(128)]))
-
-    def __str__(self):
-        return f"AESTransaction(plaintext={self.data_in.hex()}, key={self.key_in.hex()})"
-
-class AESSequence(uvm_sequence):
-    def __init__(self, name, num_items=10):
-        super().__init__(name)
-        self.num_items = num_items
-
-    def body(self):
-        for _ in range(self.num_items):
-            txn = aesTransaction("txn")
-            self.start_item(txn)
-            self.finish_item(txn)    
-
-class AESSequencer(uvm_sequencer):
-    pass
-
-class AESDriver(uvm_driver):
-    def run_phase(self):
-        while True:
-            txn = self.seq_item_port.get_next_item()
-            # Apply to DUT here
-            print(f"[DRIVER] Sending plaintext={txn.data_in.hex()} key={txn.key_in.hex()}")
-            # Simulate encryption (mock or real AES)
-            self.seq_item_port.item_done()
-
-class AESMonitor(uvm_component):
+class AesEnv(uvm_env):
     def build_phase(self):
-        self.ap = uvm_analysis_port("ap", self)
-
-    def run_phase(self):
-        while True:
-            # In real setup, capture from DUT outputs
-            observed = {"ciphertext": b"\x00"*16}  # placeholder
-            print(f"[MONITOR] Observed ciphertext={observed['ciphertext'].hex()}")
-            self.ap.write(observed)
-
-
-class AESScoreboard(uvm_component):
-    def build_phase(self):
-        self.expected = []
+        self.sequencer = AesSequencer("seqr",self)
+        self.driver = AesDriver.create("driver", self)
     
-    def write(self, observed):
-        expected_cipher = b"\x00"*16  # placeholder AES ref model
-        if observed["ciphertext"] != expected_cipher:
-            print("[SCOREBOARD] Mismatch!")
-        else:
-            print("[SCOREBOARD] Match.")
+    def connect_phase(self):
+        self.driver.seq_item_port.connect(self.sequencer.seq_item_export)
+
+class AesTestBase(uvm_test):
+    def build_phase(self):
+        self.env = AesEnv("env", self)
+
+    def end_of_elaboration_phase(self):
+        self.test_all = AesSequence.create("test")
+
+    async def run_phase(self):
+        self.raise_objection()
+        dut = cocotb.top
+        cocotb.start_soon(Clock(dut.clk_i, 10, units="ns").start())
+        await self.test_all.start(self.env.sequencer)
+        self.drop_objection()
+
+@pyuvm.test()
+class AesTest(AesTestBase):
+    """AesTest"""
