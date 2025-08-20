@@ -1,0 +1,11 @@
+#%SimplAPI=1.0
+
+name: aes_core
+dependencies:
+- ../addkey/addkey.yml
+- ../mixcolumns/mixcolumns.yml
+- ../shiftrow/shiftrow.yml
+- ../subbyte/subbyte.yml
+
+files:
+- hdl/aes_core.sv
